@@ -1,0 +1,152 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <parent>
+        <artifactId>p2p-parent</artifactId>
+        <groupId>com.pds</groupId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>p2p</artifactId>
+    <packaging>war</packaging>
+    <name>p2p</name>
+
+    <dependencies>
+
+
+        <!-- 模块依赖 -->
+
+        <dependency>
+            <groupId>com.pds</groupId>
+            <artifactId>p2p-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+    </dependencies>
+    <build>
+        <finalName>p2p</finalName>
+
+        <resources>
+            <resource>
+                <directory>src/main/java</directory>
+                <includes>
+                    <include>**/*.xml</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+
+        </resources>
+
+
+        <testResources>
+
+            <testResource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </testResource>
+
+            <testResource>
+                <directory>src/test/resources</directory>
+                <filtering>true</filtering>
+            </testResource>
+
+        </testResources>
+
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.5.1</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                    <encoding>UTF-8</encoding>
+                    <compilerArguments>
+                        <extdirs>${basedir}/src/main/webapp/WEB-INF/lib</extdirs>
+                    </compilerArguments>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-war-plugin</artifactId>
+                <version>2.6</version>
+                <configuration>
+                    <webResources>
+                        <resource>
+                            <!--原配置文件的目录，相对于pom.xml文件的路径-->
+                            <directory>src/main/webapp/WEB-INF</directory>
+                            <!--是否过滤文件，也就是是否启动auto-config的功能-->
+                            <filtering>true</filtering>
+                            <!--只更新-->
+                            <includes>
+                                <include>web.xml</include>
+                            </includes>
+                            <!--目标路径-->
+                            <targetPath>WEB-INF</targetPath>
+                        </resource>
+                        <resource>
+                            <directory>src/main/resources/release</directory>
+                            <filtering>true</filtering>
+                            <includes>
+                                <include>log4j2.xml</include>
+                            </includes>
+                            <targetPath>WEB-INF/classes</targetPath>
+                        </resource>
+                        <resource>
+                            <directory>src/main/resources/release/config</directory>
+                            <filtering>true</filtering>
+                            <includes>
+                                <include>*.properties</include>
+                            </includes>
+                            <targetPath>WEB-INF/classes/config</targetPath>
+                        </resource>
+                    </webResources>
+                </configuration>
+            </plugin>
+
+        </plugins>
+    </build>
+
+
+    <profiles>
+        <profile>
+            <!-- debug 本地开发测试环境 -->
+            <id>debug</id>
+            <!-- debug 本地开发测试环境 -->
+            <activation>
+                <os>
+                    <family>Windows</family>
+                </os>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <application.profile>debug</application.profile>
+
+                <!-- log4j2.xml 日志路径 -->
+                <application.log.dir>d:/p2pFiles</application.log.dir>
+
+                <!--web.xml -->
+                <uuap.casServerLoginUrl>http://itebeta.baidu.com:8100/login</uuap.casServerLoginUrl>
+                <uuap.serverName>http://localhost:8080</uuap.serverName>
+                <uuap.casServerUrlPrefix>http://itebeta.baidu.com:8100</uuap.casServerUrlPrefix>
+
+            </properties>
+        </profile>
+        <profile>
+            <!-- dev 开发测试环境 -->
+            <id>dev</id>
+            <properties>
+                <application.profile>dev</application.profile>
+
+                <!-- log4j2.xml 日志路径 -->
+                <application.log.dir>/home/smpmfs/smpdev/logs/p2p</application.log.dir>
+
+                <!--web.xml -->
+                <uuap.casServerLoginUrl>https://uuap.baidu.com/login</uuap.casServerLoginUrl>
+                <uuap.serverName>http://portal.caigou.baidu.com</uuap.serverName>
+                <uuap.casServerUrlPrefix>https://uuap.baidu.com</uuap.casServerUrlPrefix>
+
+            </properties>
+        </profile>
+    </profiles>
+</project>

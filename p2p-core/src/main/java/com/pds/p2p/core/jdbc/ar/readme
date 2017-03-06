@@ -1,0 +1,153 @@
+jActiveRecord
+jActiveRecord是我根据自己的喜好用Java实现的对象关系映射（ORM）库，灵感来自Ruby on Rails的ActiveRecord。它拥有以下特色：
+
+零配置：无XML配置文件、无Annotation注解。
+零依赖：不依赖任何第三方库，运行环境为Java 6或以上版本。
+零SQL：无需显式地写任何SQL语句，甚至多表关联、分页等高级查询亦是如此。
+动态性：和其他库不同，无需为每张表定义一个相对应的静态类。表、表对象、行对象等都能动态创建和动态获取。
+简化：jActiveRecord虽是模仿ActiveRecord，它同时做了一些简化。例如，所有的操作仅涉及DB、Table和Record三个类，并且HasMany、HasAndBelongsToMany等关联对象职责单一化，容易理解。
+支持多数据库访问
+多线程安全
+支持事务
+=====================================================================================================
+创建表
+首先要创建一张用户信息表，此处的用户当然是僵尸（Zombie），包含名字（name）和墓地（graveyard）两个信息。
+
+Table Zombie = sqlite3.createTable("zombies", "name text", "graveyard text");
+createTable方法的第一个参数是数据库表的名字，之后可以跟随任意个描述字段的参数，
+格式是名字+类型，用空格隔开。
+createTable方法会自动添加一个自增长（auto increment）的id字段作为主键。
+由于各个数据库实现自增长字段的方式不同，目前jActiveRecord的“创建表”功能支持如下数据库：
+HyperSQL
+MySQL
+PostgreSQL
+SQLite
+如果你使用的数据库不在上述列表中，可以自己实现me.zzp.ar.d.Dialect接口，并添加到META-INF/services/me.zzp.ar.d.Dialect。jActiveRecord采用Java 6的ServiceLoader自动加载实现Dialect接口的类。
+
+此外jActiveRecord还会额外添加created_at和updated_at两个字段，类型均为timestamp，分别保存记录被创建和更新的时间。因此，上述代码总共创建了5个字段：id、name、graveyard、created_at和updated_at。
+===================================================================
+添加
+Table Zombie = sqlite3.active("zombies");
+Zombie.create("name:", "Ash", "graveyard:", "Glen Haven Memorial Cemetery");
+Zombie.create("name", "Bob", "graveyard", "Chapel Hill Cemetery");
+Zombie.create("graveyard", "My Fathers Basement", "name", "Jim");
+首先用DB#active获取之前创建的表对象，然后使用Table#create新增一条记录（并且立即返回刚创建的记录）。该方法可使用“命名参数”，来突显每个值的含义。由于Java语法不支持命名参数，因此列名末尾允许带一个冗余的冒号，即“name:”与“name”是等价的；此外键值对顺序无关，因此第三条名为“Jim”的僵尸记录也能成功创建。
+
+===================================================================
+查询
+jActiveRecord提供了下列查询方法：
+
+Record find(int id)：返回指定id的记录。
+List<Record> all()：返回符合约束的所有记录。
+List<Record> paging(int page, int size)：基于all()的分页查询，page从0开始。
+Record first()：基于all()，返回按id排序的第一条记录。
+Record last()：基于all()，返回按id排序的最后一条记录。
+List<Record> where(String condition, Object... args)：基于all()，返回符合条件的所有记录。条件表达式兼容java.sql.PreparedStatement。
+Record first(String condition, Object... args)：基于where()，返回按id排序的第一条记录。
+Record last(String condition, Object... args)：基于where()，返回按id排序的最后一条记录。
+List<Record> findBy(String key, Object value)：基于all()，返回指定列与value相等的所有记录。
+Record findA(String key, Object value)：基于findBy()，返回按id排序的第一条记录。
+first、last和find等方法仅返回一条记录；另一些方法可能返回多条记录，因此返回List。
+
+例如，获得id为3的僵尸有以下方法：
+
+Zombie.find(3);
+Zombie.findA("name", "Jim");
+Zombie.first("graveyard like ?", "My Father%");
+数据库返回的记录被包装成Record对象，使用Record#get获取数据。借助泛型，能根据左值自动转换数据类型：
+
+Record jim = Zombie.find(3);
+int id = jim.get("id");
+String name = jim.get("name");
+Timestamp createdAt = jim.get("created_at");
+此外，Record同样提供了诸如getInt、getStr等常用类型的强制转换接口。
+
+jActiveRecord不使用Bean，因为Bean不通用，你不得不为每张表创建一个相应的Bean类；使用Bean除了能在编译期检查getter和setter的名字是否有拼写错误，没有任何好处；
+
+更新
+通过查询获得目标对象，接着可以做一些更新操作。例如将编号为3的僵尸的目的改成“Benny Hills Memorial”。
+
+调用Record#set方法可更新记录中的值，然后调用Record#save或Table#update保存修改结果；或者调用Record#update一步完成更新和保存操作，该方法和create一样接受任意多个命名参数。
+
+Record jim = Zombie.find(3);
+jim.set("graveyard", "Benny Hills Memorial").save();
+jim.update("graveyard:", "Benny Hills Memorial"); // Same with above
+删除
+Table#delete和Record#destroy都能删除一条记录，Table#purge能删除当前约束下所有的记录。
+
+Zombie.find(1).destroy();
+Zombie.delete(Zombie.find(1)); // Same with above
+上述代码功能相同：删除id为1的僵尸。
+
+关联
+到了最精彩的部分了！ORM库除了将记录映射成对象，还要将表之间的关联信息面向对象化。
+
+jActiveRecord提供与RoR一样的四种关联关系，并做了简化：
+
+Table#belongsTo
+Table#hasOne
+Table#hasMany
+Table#hasAndBelongsToMany
+每个方法接收一个字符串参数name作为关系的名字，并返回Association关联对象，拥有以下三个方法：
+by：指定外键的名字，默认使用name + "_id"作为外键的名字。
+in：指定关联表的名字，默认与name相同。
+through：关联组合，参数为其他已经指定的关联的名字。即通过其他关联实现跨表访问（join多张表）。
+
+一对多
+回到僵尸微博系统的问题上，上面的章节仅创建了一张用户表，现在创建另一张表tweets保存微博信息：
+
+Table Tweet = sqlite3.createTable("tweets", "zombie_id int", "content text");
+其中zombie_id作为外键与zombies表的id像关联。即每个僵尸有多条相关联的微博，而每条微博仅有一个相关联的僵尸。jActiveRecord中用hasMany和belongsTo来描述这种“一对多”的关系。其中hasMany在“一”方使用，belongsTo在“多”放使用（即外键所在的表）。
+
+Zombie.hasMany("tweets").by("zombie_id");
+Tweet.belongsTo("zombie").by("zombie_id").in("zombies");
+接着，就能通过关联名从Record中获取关联对象了。例如，获取Jim的所有微博：
+
+Record jim = Zombie.find(3);
+Table jimTweets = jim.get("tweets");
+for (Record tweet : jimTweets.all()) {
+  // ...
+}
+或者根据微博获得相应的僵尸信息：
+
+Record zombie = Tweet.find(1).get("zombie");
+你可能已经注意到了：hasMany会返回多条记录，因此返回Table类型；belongsTo永远只返回一条记录，因此返回Record。此外，还有一种特殊的一对多关系：hasOne，即“多”方有且仅有一条记录。hasOne的用法和hasMany相同，只是返回值是Record而不是Table。
+
+关联组合
+
+让我们再往微博系统中加入“评论”功能：
+
+Table Comment = sqlite3.createTable("comments", "zombie_id int", "tweet_id", "content text");
+一条微博可以收到多条评论；而一个僵尸有多条微博。因此，僵尸和收到的评论是一种组合的关系：僵尸hasMany微博hasMany评论。jActiveRecord提供through描述这种组合的关联关系。
+
+Zombie.hasMany("tweets").by("zombie_id"); // has defined above
+Zombie.hasMany("receive_comments").by("tweet_id").through("tweets");
+Zombie.hasMany("send_comments").by("zombie_id").in("comments");
+上面的规则描述了Zombie首先能找到Tweet，借助Tweet.tweet_id又能找到Comment。第三行代码描述Zombie通过Comment的zombie_id可直接获取发出去的评论。
+
+事实上，through可用于组合任意类型的关联，例如hasAndBelongsToMany依赖hasOne、belongsTo依赖另一条belongsTo……
+
+多对多
+
+RoR中多对多关联有has_many through和has_and_belongs_to_many两种方法，且功能上有重叠之处。jActiveRecord仅保留hasAndBelongsToMany这一种方式来描述多对多关联。多对多关联要求有一张独立的映射表，记录映射关系。即两个“多”方都没有包含彼此的外键，而是借助第三张表同时保存它们的外键。
+
+例如，为每条微博添加所在城市的信息，而城市单独作为一张表。
+
+sqlite3.dropTable("tweets");
+Tweet = sqlite3.createTable("tweets", "zombie_id int", "city_id int", "content text");
+Table City = sqlite3.createTable("cities", "name text");
+其中表cities包含所有城市的信息，tweets记录僵尸和城市的关联关系。Zombie为了自己去过的City，它首先要连接到表tweets，再通过它访问cities。
+
+Zombie.hasMany("tweets").by("zombie_id"); // has defined above
+Zombie.hasAndBelongsToMany("travelled_cities").by("city_id").in("cities").through("tweets");
+顾名思义，多对多的关联返回的类型一定是Table而不是Record。
+
+关联总结
+
+一对一：有外键的表用belongsTo；无外键的表用hasOne。
+一对多：有外键的表用belongsTo；无外键的表用hasMany。
+多对多：两个多方都用hasAndBelongsToMany；映射表用belongsTo。
+通过through可以任意组合其他关联。
+
+总结
+本文通过一个微博系统的例子，介绍了jActiveRecord的常用功能。更多特性请访问本站Wiki。

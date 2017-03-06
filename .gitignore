@@ -1,0 +1,8 @@
+.idea/
+target/
+*.class
+*.iml
+*.jar
+.classpath
+.mymetadata
+..project
