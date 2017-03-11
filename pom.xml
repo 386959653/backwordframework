@@ -18,7 +18,17 @@
         <cxf.version>2.7.5</cxf.version>
     </properties>
 
-
+    <pluginRepositories>
+        <pluginRepository>
+            <id>nexus-aliyun</id>
+            <name>Nexus aliyun</name>
+            <url>http://maven.aliyun.com/nexus/content/groups/public/</url>
+        </pluginRepository>
+        <pluginRepository>
+            <id>central</id>
+            <url>http://central.maven.org/maven2/</url>
+        </pluginRepository>
+    </pluginRepositories>
 
     <repositories>
         <!-- <repository> <id>erp gp</id> <name>erp gp</name> <url>http://m1-erp-vm-app24.vm.baidu.com:8081/nexus/content/groups/public/</url>
