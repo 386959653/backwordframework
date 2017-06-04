@@ -1,0 +1,31 @@
+<b:beans xmlns="http://www.springframework.org/schema/security"
+         xmlns:b="http://www.springframework.org/schema/beans"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+						http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd">
+
+    <!-- 去除不需要拦截的url -->
+    <http pattern="/login.jsp" security="none"/>
+
+    <http auto-config="true" >
+        <!-- 登录配置 -->
+        <intercept-url pattern="/*" access="hasRole('ROLE_USER')" />
+        <form-login login-page="/login.jsp"
+                    default-target-url="/login/login_ok"
+                    login-processing-url="/login/login"
+                    authentication-failure-url="/login/login_fail"/>
+
+        <!--退出登录配置-->
+        <logout invalidate-session="true"
+                logout-success-url="/login.jsp"
+                logout-url="/login/logout"/>
+
+        <csrf disabled="true"/>
+    </http>
+    <!--<http/>-->
+
+    <user-service>
+        <user name="user" password="password" authorities="ROLE_USER" />
+    </user-service>
+
+</b:beans>

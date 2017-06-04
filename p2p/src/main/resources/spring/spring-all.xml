@@ -24,8 +24,8 @@
     <!--<import resource="spring-redis.xml"/>-->
     <!--<import resource="spring-uic.xml"/>-->
     <!--<import resource="spring-mybatis.xml"/>-->
-
     <!--<import resource="spring-quartz.xml"/>-->
+    <import resource="security.xml"/>
 
 
 </beans>

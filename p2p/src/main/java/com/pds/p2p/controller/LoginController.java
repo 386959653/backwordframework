@@ -3,8 +3,10 @@ package com.pds.p2p.controller;
 import com.pds.p2p.core.utils.StringUtils;
 import com.pds.p2p.interceptor.MemberInterceptor;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -37,4 +39,11 @@ public class LoginController {
             return "redirect:/login.htm";
         }
     }
+
+    @RequestMapping(value = "/login_ok", method = RequestMethod.GET)
+    public String loginPage() {
+        return "redirect:/index.jsp";
+    }
+
+
 }
